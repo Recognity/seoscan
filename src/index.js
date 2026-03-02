@@ -18,6 +18,7 @@ import generateJson from './report/json.js';
 import { printHeader, printScore, gradeFromScore, colorScore } from './utils/display.js';
 
 import { writeFileSync } from 'fs';
+import { fixCommand } from './commands/fix.js';
 
 async function runAllChecks(url) {
   const spinner = (msg) => process.stderr.write(chalk.dim(`  ${msg}...\n`));
@@ -235,6 +236,15 @@ export function setupCLI() {
       } else {
         console.log(output);
       }
+    });
+
+  // ── seoscan fix <url> ────────────────────────────────────────────────────
+  program
+    .command('fix <url>')
+    .description('Run audit then generate AI-powered fixes (requires OPENAI_API_KEY or ANTHROPIC_API_KEY)')
+    .option('--dry-run', 'Show issues without calling AI (no key required)')
+    .action(async (url, opts) => {
+      await fixCommand(url, { dryRun: opts.dryRun || false });
     });
 
   // ── seoscan compare <url1> <url2> ────────────────────────────────────────
