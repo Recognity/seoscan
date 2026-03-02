@@ -60,8 +60,8 @@ const PRICING = {
   'gpt-4o-mini':              { input: 0.15,  output: 0.60 },
   'gpt-4o':                   { input: 2.50,  output: 10.00 },
   'claude-3-haiku-20240307':  { input: 0.25,  output: 1.25 },
-  'claude-3-5-haiku-20241022':{ input: 0.80,  output: 4.00 },
-  'claude-3-5-sonnet-20241022':{ input: 3.00, output: 15.00 },
+  'claude-3-5-haiku-latest':{ input: 0.80,  output: 4.00 },
+  'claude-3-5-sonnet-latest':{ input: 3.00, output: 15.00 },
 };
 
 function calcCost(inputTokens, outputTokens, model) {
@@ -94,7 +94,7 @@ export function getAIConfig() {
     return {
       provider: 'anthropic',
       key: anthropicKey,
-      model: cfg.model || 'claude-3-5-haiku-20241022',
+      model: cfg.model || 'claude-3-5-haiku-latest',
     };
   }
 
