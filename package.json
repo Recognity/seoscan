@@ -9,8 +9,19 @@
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/.bin/jest"
   },
-  "keywords": ["seo", "audit", "cli", "crawler"],
-  "author": "",
+  "keywords": [
+    "seo",
+    "audit",
+    "cli",
+    "lighthouse",
+    "performance",
+    "meta",
+    "headers",
+    "security",
+    "ai",
+    "fix"
+  ],
+  "author": "Recognity <anthony@recognity.fr> (https://recognity.fr)",
   "license": "MIT",
   "dependencies": {
     "axios": "^1.7.2",
@@ -21,5 +32,10 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "homepage": "https://recognity.fr",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/recognity/seoscan.git"
   }
 }

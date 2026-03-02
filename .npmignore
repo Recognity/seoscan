@@ -1,0 +1,7 @@
+*.yml
+.git
+.env
+test/
+data/
+snapshots/
+SPEC*.md
