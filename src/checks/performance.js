@@ -158,16 +158,25 @@ export default async function checkPerformance(url) {
   const headEl = $('head');
   let renderBlockingCount = 0;
 
+  // Detect if a cache/optimization plugin is combining resources
+  const hasOptimizer = $('link[data-optimized], script[data-optimized]').length > 0
+    || $('script[src*="litespeed"], link[href*="litespeed"]').length > 0
+    || $('script[src*="autoptimize"], link[href*="autoptimize"]').length > 0
+    || $('script[src*="wp-rocket"], link[href*="wp-rocket"]').length > 0;
+
   headEl.find('script').each((_, el) => {
     const $el = $(el);
-    const src = $el.attr('src');
+    const src = $el.attr('src') || '';
     // Inline scripts without src are still potentially render-blocking
     const isAsync = $el.attr('async') !== undefined;
     const isDefer = $el.attr('defer') !== undefined;
     const type = ($el.attr('type') || '').toLowerCase();
     // module scripts are deferred by default; data URLs are not real resources
     const isModuleType = type === 'module';
-    if (!isAsync && !isDefer && !isModuleType) {
+    // Optimized/combined scripts from cache plugins are already bundled — not truly blocking
+    const isOptimized = $el.attr('data-optimized') !== undefined
+      || /litespeed|autoptimize|wp-rocket/.test(src);
+    if (!isAsync && !isDefer && !isModuleType && !isOptimized) {
       renderBlockingCount++;
     }
   });
@@ -175,8 +184,12 @@ export default async function checkPerformance(url) {
   headEl.find('link[rel="stylesheet"]').each((_, el) => {
     const $el = $(el);
     const media = ($el.attr('media') || '').toLowerCase();
+    const href = ($el.attr('href') || '');
+    // Optimized/combined stylesheets from cache plugins
+    const isOptimized = $el.attr('data-optimized') !== undefined
+      || /litespeed|autoptimize|wp-rocket/.test(href);
     // media="print" or other non-screen media are not render-blocking
-    if (!media || media === 'all' || media === 'screen') {
+    if ((!media || media === 'all' || media === 'screen') && !isOptimized) {
       renderBlockingCount++;
     }
   });

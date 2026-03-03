@@ -106,7 +106,18 @@ export default async function checkMeta(url) {
     });
   } else {
     const len = title.length;
-    if (len < TITLE_MIN || len > TITLE_MAX) {
+    // Detect default/generic WordPress titles
+    const defaultTitles = ['accueil', 'home', 'bienvenue', 'welcome', 'mon site', 'my site', 'just another wordpress site'];
+    const isDefaultTitle = defaultTitles.includes(title.toLowerCase().trim());
+    if (isDefaultTitle) {
+      score -= DEDUCTIONS.titleWrongLength;
+      checks.push({
+        name: 'Title tag',
+        status: 'warn',
+        value: title,
+        note: `Default/generic title detected ("${title}"). Customize it with your brand and main keywords for better SEO.`,
+      });
+    } else if (len < TITLE_MIN || len > TITLE_MAX) {
       score -= DEDUCTIONS.titleWrongLength;
       checks.push({
         name: 'Title tag',

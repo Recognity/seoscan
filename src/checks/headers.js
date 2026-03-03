@@ -70,16 +70,22 @@ export default async function checkHeaders(url) {
   headersResult.ssl.isHttps = parsedUrl.protocol === 'https:';
 
   try {
+    // Add cache-bust param to bypass CDN/LiteSpeed/Varnish cache
+    // This ensures we check headers from the origin server, not cached responses
+    const bustUrl = new URL(url);
+    bustUrl.searchParams.set('_seoscan', Date.now());
+    const freshUrl = bustUrl.toString();
+
     // Use HEAD first to get headers with less bandwidth; fall back to GET
     let response;
     try {
-      response = await fetch(url, { method: 'HEAD' });
+      response = await fetch(freshUrl, { method: 'HEAD' });
       // Some servers return 405 for HEAD; fall back to GET
       if (response.status === 405 || response.status === 501) {
-        response = await fetch(url);
+        response = await fetch(freshUrl);
       }
     } catch {
-      response = await fetch(url);
+      response = await fetch(freshUrl);
     }
 
     if (response.status === 0 || (response.status >= 500 && response.status < 600)) {
@@ -138,7 +144,7 @@ export default async function checkHeaders(url) {
     // ----------------------------------------------------------------
     // Security headers
     // ----------------------------------------------------------------
-    let missingSecurityCount = 0;
+    let securityPenalty = 0;
 
     for (const header of SECURITY_HEADERS) {
       const value = getHeader(header.key);
@@ -151,17 +157,37 @@ export default async function checkHeaders(url) {
           detail: value.length > 80 ? value.slice(0, 77) + '...' : value,
         });
       } else {
-        missingSecurityCount += 1;
+        // CSP is complex to configure — warn instead of fail, lower penalty
+        const isCsp = header.key === 'content-security-policy';
+        securityPenalty += isCsp ? 5 : 10;
         checks.push({
           name: header.name,
-          status: 'fail',
-          detail: 'Header not present',
+          status: isCsp ? 'warn' : 'fail',
+          detail: isCsp
+            ? 'Header not present (complex to configure — consider adding a basic policy)'
+            : 'Header not present',
         });
       }
     }
 
-    const securityPenalty = Math.min(missingSecurityCount * 10, 60);
+    securityPenalty = Math.min(securityPenalty, 60);
     score -= securityPenalty;
+
+    // ----------------------------------------------------------------
+    // Cache/CDN plugin detection (bonus info)
+    // ----------------------------------------------------------------
+    const lsCache = getHeader('x-litespeed-cache') || getHeader('x-litespeed-cache-control');
+    const cfCache = getHeader('cf-cache-status');
+    const varnish = getHeader('x-varnish');
+    const fastly = getHeader('x-served-by');
+    const cachePlugin = lsCache ? 'LiteSpeed Cache' : cfCache ? 'Cloudflare' : varnish ? 'Varnish' : fastly ? 'Fastly' : null;
+    if (cachePlugin) {
+      checks.push({
+        name: 'Cache/CDN',
+        status: 'pass',
+        detail: `${cachePlugin} detected — server-side caching active`,
+      });
+    }
 
     // ----------------------------------------------------------------
     // Cache headers

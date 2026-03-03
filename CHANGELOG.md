@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.3] - 2026-03-03
+
+### Fixed
+- Headers check now bypasses CDN/LiteSpeed cache with cache-bust query param — no more false negatives on security headers
+- CSP missing is now a warning (-5 pts) instead of fail (-10 pts) — complex to configure, unfair to penalize heavily
+- Render-blocking detection excludes LiteSpeed/Autoptimize/WP-Rocket optimized bundles (data-optimized attribute)
+- Default WordPress titles ("Accueil", "Home", etc.) now get a specific "customize your title" message
+
+### Added
+- Cache/CDN plugin detection: LiteSpeed Cache, Cloudflare, Varnish, Fastly shown as bonus in headers audit
+
 ## [1.0.2] - 2026-03-03
 
 ### Fixed

@@ -1,6 +1,6 @@
 {
   "name": "seoscan",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Full SEO audit CLI — one command to audit any website",
   "type": "module",
   "bin": {
