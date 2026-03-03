@@ -23,14 +23,25 @@ function createClient(options = {}) {
     httpsAgent,
     headers: {
       'User-Agent': options.userAgent ?? DEFAULT_USER_AGENT,
+      'Accept-Encoding': 'gzip, deflate, br',
       ...(options.headers ?? {}),
     },
+    decompress: true,
     validateStatus: () => true, // never throw on HTTP status
   });
 
-  // Track redirects via response interceptor
+  // Capture original content-encoding before axios strips it on decompress
   client.interceptors.response.use(
     (response) => {
+      // Try multiple paths to find original content-encoding
+      const rawRes = response.request?.res;
+      const sock = response.request?.socket || response.request?.connection;
+      const origCE = rawRes?.headers?.['content-encoding']
+        || response.request?._header?.['content-encoding']
+        || (rawRes?.rawHeaders ? rawRes.rawHeaders[rawRes.rawHeaders.findIndex(h => /^content-encoding$/i.test(h)) + 1] : null);
+      if (origCE) {
+        response.headers['x-original-content-encoding'] = origCE;
+      }
       // axios follows redirects internally; capture each hop via the request chain
       const req = response.request;
       if (req && req.res && req.res.responseUrl) {

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2] - 2026-03-03
+
+### Fixed
+- Compression detection: capture original content-encoding header before axios decompression (Brotli/gzip now detected on LiteSpeed, Cloudflare, etc.)
+- Lazy loading: detect JS-based lazy loading (LiteSpeed, lazysizes) via data-src attributes and CSS classes, not just native loading="lazy"
+- HTTP/2 false positive: Node.js http module can't negotiate h2 — report "Unknown" instead of penalizing
+- Anthropic model: claude-3-5-haiku-latest no longer available, fallback to claude-3-haiku-20240307
+
 All notable changes to this project will be documented in this file.
 
 ## [1.0.0] — 2026-03-02

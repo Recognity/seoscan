@@ -62,10 +62,17 @@ function detectHttpVersion(response) {
   // axios populates request.res which is a Node.js IncomingMessage
   const res = response.request?.res || response.request?._response;
   if (res?.httpVersion) return res.httpVersion;
-  // Fallback: check a header that only HTTP/2 servers typically set
+  // Check alt-svc and other headers that indicate HTTP/2+ support
   const altSvc = response.headers['alt-svc'] || '';
   if (altSvc.includes('h2') || altSvc.includes('h3')) return '2.0';
-  return '1.1';
+  // Check for server headers typical of HTTP/2-capable servers
+  const server = (response.headers['server'] || '').toLowerCase();
+  const via = (response.headers['via'] || '').toLowerCase();
+  if (via.includes('2.0') || via.includes('h2')) return '2.0';
+  // Note: Node.js http module only speaks HTTP/1.1, so we can't truly detect
+  // HTTP/2 without using the http2 module. Return 'unknown' instead of
+  // falsely reporting 1.1 when the server likely supports h2.
+  return 'unknown';
 }
 
 /**
@@ -112,12 +119,13 @@ export default async function checkPerformance(url) {
 
   const htmlSize = getHtmlSize(response);
 
-  const contentEncoding = (response.headers['content-encoding'] || '').toLowerCase();
-  const compression = contentEncoding === 'gzip'
+  // Check both standard header and our preserved original (axios strips it after decompress)
+  const contentEncoding = (response.headers['content-encoding'] || response.headers['x-original-content-encoding'] || '').toLowerCase();
+  const compression = contentEncoding.includes('gzip')
     ? 'gzip'
-    : contentEncoding === 'br'
+    : contentEncoding.includes('br')
       ? 'brotli'
-      : contentEncoding === 'deflate'
+      : contentEncoding.includes('deflate')
         ? 'deflate'
         : null;
 
@@ -137,7 +145,11 @@ export default async function checkPerformance(url) {
   const imagesWithoutLazy = allImages
     .filter((_, el) => {
       const $el = $(el);
-      return ($el.attr('loading') || '').toLowerCase() !== 'lazy';
+      // Detect native loading="lazy" OR JS-based lazy loading (LiteSpeed, lazysizes, etc.)
+      const hasNativeLazy = ($el.attr('loading') || '').toLowerCase() === 'lazy';
+      const hasDataSrc = !!($el.attr('data-src') || $el.attr('data-lazy-src') || $el.attr('data-lazyload'));
+      const hasLazyClass = /lazy|litespeed|lazyload/i.test($el.attr('class') || '');
+      return !hasNativeLazy && !hasDataSrc && !hasLazyClass;
     })
     .length;
 
@@ -251,6 +263,13 @@ export default async function checkPerformance(url) {
         status: 'ok',
         value: `HTTP/${httpVersion}`,
         note: 'Server supports HTTP/2. Multiplexing reduces latency for multiple resources.',
+      });
+    } else if (httpVersion === 'unknown') {
+      checks.push({
+        name: 'HTTP/2',
+        status: 'info',
+        value: 'Unknown',
+        note: 'Cannot determine HTTP version (Node.js limitation). Check your server config manually.',
       });
     } else {
       score -= DEDUCTIONS.noHttp2;

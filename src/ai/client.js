@@ -94,7 +94,7 @@ export function getAIConfig() {
     return {
       provider: 'anthropic',
       key: anthropicKey,
-      model: cfg.model || 'claude-3-5-haiku-latest',
+      model: cfg.model || 'claude-3-haiku-20240307',
     };
   }
 
